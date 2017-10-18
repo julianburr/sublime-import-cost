@@ -26,7 +26,8 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
   def on_new_async(self):
     self.update_phantoms()
 
-  def on_pre_save_async(self):
+  def on_modified_async(self):
+    print('presave')
     self.update_phantoms()
 
   def update_phantoms(self):
@@ -41,6 +42,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     return [es6 + es5, modules]
     
   def calc_imports(self, imports):
+    # TODO: cache modules!
     phantoms = []
     lines, modules = imports
 
@@ -61,27 +63,37 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     try:
       args = json.dumps(final_modules)
     except OSError:
-      print('Something went wrong!')
+      print('Error trying to stringify json!')
+      return None
 
-    print('test', args)
     data = self.node_bridge(PLUGIN_NODE_PATH, [
       self.get_view_base_path(), 
       args
     ]);
-
-    print('data', data)
+    json_data = json.loads(data)
 
     cnt = 0
     for module in final_data:
-      line = self.view.line(module["region"].a)
-      phantoms.append(sublime.Phantom(
-        sublime.Region(line.b),
-        '''
-          <style>html, body {margin: 0; padding:0;}</style>
-          <span style="color: green; padding: 0 10px;">Yes</span>
-        ''',
-        sublime.LAYOUT_INLINE
-      ))
+      size_data = json_data[cnt];
+      if size_data['size']:
+        line = self.view.line(module["region"].a)
+
+        # TODO: change to settings
+        kb = size_data['size'] / 1000
+        color = '#666'
+        if kb > 20:
+          color = 'var(--yellowish)'
+        if kb > 40:
+          color = 'var(--redish)'
+
+        phantoms.append(sublime.Phantom(
+          sublime.Region(line.b),
+          '''
+            <style>html, body {margin: 0; padding:0;}</style>
+            <span style="color: %s; padding: 0 15px; font-size: .9rem; line-height: 1.2rem">%.2fkB</span>
+          ''' % (color, kb),
+          sublime.LAYOUT_INLINE
+        ))
       cnt = cnt + 1
     self.phantoms.update(phantoms)
 
@@ -96,7 +108,9 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     return True
 
   def get_view_base_path(self):
-    return self.view.window().folders()[0]
+    if self.view.window():
+      return self.view.window().folders()[0]
+    return None
 
   def get_node_modules_path(self):
     node_path = self.get_view_base_path() + '/node_modules/'
@@ -114,12 +128,11 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     return False
 
   def node_bridge(self, bin, args=[]):
-    print('args', args)
     env = os.environ.copy()
     env['PATH'] += ':/usr/local/bin'
     try:
       process = subprocess.Popen(
-        ['node'] + [bin],
+        ['node'] + [bin] + args,
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -133,5 +146,5 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     stderr = stderr.decode('utf-8')
     if stderr:
       print('Error: %s' % stderr)
-    else:
-      return stdout
+      return None
+    return stdout

@@ -9,7 +9,7 @@ const fileContents = modules
   .join('\n');
 
 const emitter = importCost(`${baseDir}/test.js`, fileContents, JAVASCRIPT);
-emitter.on('error', console.error);
+emitter.on('error', process.stdout.write);
 emitter.on('done', packages => {
   process.stdout.write(JSON.stringify(packages));
   emitter.removeAllListeners();
