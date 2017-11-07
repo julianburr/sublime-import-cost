@@ -89,8 +89,8 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
         phantoms.append(sublime.Phantom(
           sublime.Region(line.b),
           '''
-            <style>html, body {margin: 0; padding:0;}</style>
-            <span style="color: %s; padding: 0 15px; font-size: .9rem; line-height: 1.2rem">%.2fkB</span>
+            <style>html, body {margin: 0; padding:0; background-color: transparent;}</style>
+            <span style="background-color: transparent; color: %s; padding: 0 15px; font-size: .9rem; line-height: 1.2rem">%.2fkB</span>
           ''' % (color, kb),
           sublime.LAYOUT_INLINE
         ))
