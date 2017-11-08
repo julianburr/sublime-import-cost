@@ -9,6 +9,10 @@ ALLOWED_FILE_EXTENSIONS = [
   'jsx'
 ]
 
+PLUGIN_NAME = 'import-cost'
+PLUGIN_PATH = os.path.join(sublime.packages_path(), os.path.dirname(os.path.realpath(__file__)))
+SETTINGS_FILE = '{0}.sublime-settings'.format(PLUGIN_NAME)
+
 PLUGIN_NODE_PATH = os.path.join(
   sublime.packages_path(), 
   os.path.dirname(os.path.realpath(__file__)),
@@ -24,11 +28,12 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     self.update_phantoms()
 
   def on_new_async(self):
-    self.update_phantoms()
+    if self.get_setting('check_on_open', True):
+      self.update_phantoms()
 
   def on_modified_async(self):
-    print('presave')
-    self.update_phantoms()
+    if self.get_setting('check_on_save', True):
+      self.update_phantoms()
 
   def update_phantoms(self):
     if self.is_file_allowed():
@@ -81,9 +86,9 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
         # TODO: change to settings
         kb = size_data['size'] / 1000
         color = '#666'
-        if kb > 20:
+        if kb > self.get_setting('min_size_warning', 40.0):
           color = 'var(--yellowish)'
-        if kb > 40:
+        if kb > self.get_setting('min_size_error', 80.0):
           color = 'var(--redish)'
 
         phantoms.append(sublime.Phantom(
@@ -148,3 +153,10 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
       print('Error: %s' % stderr)
       return None
     return stdout
+
+  def get_setting(self, key, default_value=None):
+    settings = self.view.settings().get(PLUGIN_NAME)
+    if settings is None or settings.get(key) is None:
+        settings = sublime.load_settings(SETTINGS_FILE)
+    value = settings.get(key, default_value)
+    return value

@@ -1,0 +1,11 @@
+{
+  // Check import costs of npm modules when saving a file
+  "check_on_save": true,
+
+  // Check import costs when opening a file
+  "check_on_open": true,
+
+  // File sizes for differnt warning levels in kb
+  "min_size_warning": 40,
+  "min_size_error": 100
+}
