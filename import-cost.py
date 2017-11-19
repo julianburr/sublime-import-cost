@@ -4,13 +4,8 @@ import os
 import subprocess
 import json
 
-ALLOWED_FILE_EXTENSIONS = [
-  'js',
-  'jsx'
-]
-
-PLUGIN_NAME = 'import-cost'
-PLUGIN_PATH = os.path.join(sublime.packages_path(), os.path.dirname(os.path.realpath(__file__)))
+PLUGIN_NAME = __package__
+PLUGIN_PATH = os.path.dirname(os.path.realpath(__file__))
 SETTINGS_FILE = '{0}.sublime-settings'.format(PLUGIN_NAME)
 
 PLUGIN_NODE_PATH = os.path.join(
@@ -128,24 +123,26 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     if not filename:
       return False
     file_ext = os.path.splitext(filename)[1][1:]
-    if file_ext in ALLOWED_FILE_EXTENSIONS:
+    if file_ext in self.get_setting('extensions', ['js', 'jsx']):
       return True
     return False
 
   def node_bridge(self, bin, args=[]):
-    env = os.environ.copy()
-    env['PATH'] += ':/usr/local/bin'
+    node_path = self.get_setting('node_path', '/usr/local/bin/node')
+    if (os.path.isfile(node_path) == False):
+      print('Error: Couldn\'t find "node" in "%s"' % node_path)
+      return None
     try:
       process = subprocess.Popen(
-        ['node'] + [bin] + args,
+        [node_path] + [bin] + args,
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        env=env,
+        env=os.environ.copy(),
         startupinfo=None
       )
     except OSError:
-      print('Error: Couldn\'t find "node" in "%s"' % env['PATH'])
+      print('Error: Couldn\'t find "node" in "%s"' % node_path)
     stdout, stderr = process.communicate()
     stdout = stdout.decode('utf-8')
     stderr = stderr.decode('utf-8')

@@ -7,5 +7,11 @@
 
   // File sizes for differnt warning levels in kb
   "min_size_warning": 40,
-  "min_size_error": 100
+  "min_size_error": 100,
+
+  // Path to node binary
+  "node_path": "/usr/local/bin/node",
+
+  // File extensions that should be considered
+  "extensions": [ "js", "jsx" ]
 }
