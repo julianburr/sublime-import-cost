@@ -19,6 +19,7 @@ cache = {};
 class ImportCostCommand(sublime_plugin.ViewEventListener):
   def __init__(self, view):
     self.view = view;
+    self.base_path = None;
     self.phantoms = sublime.PhantomSet(view)
     self.update_phantoms()
 
@@ -50,10 +51,9 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     final_data = [];
     final_modules = []
     for module in modules:
-      if module:
-        if self.check_module(module):
-          final_modules.append(module)
-          final_data.append({"region": lines[cnt], "module": module})
+      if module and self.find_root_path(module):
+        final_modules.append(module)
+        final_data.append({"region": lines[cnt], "module": module})
       cnt = cnt + 1
 
     if len(final_modules) is 0:
@@ -67,7 +67,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
       return None
 
     data = self.node_bridge(PLUGIN_NODE_PATH, [
-      self.get_view_base_path(), 
+      self.base_path, 
       args
     ]);
     json_data = json.loads(data)
@@ -86,37 +86,22 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
         if kb > self.get_setting('min_size_error', 80.0):
           color = 'var(--redish)'
 
+        gziptxt = ''
+        if (self.get_setting('show_gzip', False)):
+          gzipkb = size_data['gzip'] / 1000
+          gziptxt = '<span style="color: color(%s blend(var(--background) 50%%));">- %.2fkB gzip</span>' % (color, gzipkb)
+
         phantoms.append(sublime.Phantom(
           sublime.Region(line.b),
           '''
             <style>html, body {margin: 0; padding:0; background-color: transparent;}</style>
-            <span style="background-color: transparent; color: %s; padding: 0 15px; font-size: .9rem; line-height: 1.2rem">%.2fkB</span>
-          ''' % (color, kb),
+            <span style="background-color: transparent; color: %s; padding: 0 15px; font-size: .9rem; line-height: 1.3rem;"><b>%.2fkB</b> %s</span>
+          ''' % (color, kb, gziptxt),
           sublime.LAYOUT_INLINE
         ))
+
       cnt = cnt + 1
     self.phantoms.update(phantoms)
-
-  def check_module(self, module_name):
-    if module_name.startswith("."):
-      return False
-    node_path = self.get_node_modules_path()
-    if node_path is False:
-      return False
-    if os.path.isdir(node_path + module_name + '/') is False:
-      return False
-    return True
-
-  def get_view_base_path(self):
-    if self.view.window():
-      return self.view.window().folders()[0]
-    return None
-
-  def get_node_modules_path(self):
-    node_path = self.get_view_base_path() + '/node_modules/'
-    if os.path.isdir(node_path):
-      return node_path
-    return False
 
   def is_file_allowed(self):
     filename = self.view.file_name()
@@ -157,3 +142,30 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
         settings = sublime.load_settings(SETTINGS_FILE)
     value = settings.get(key, default_value)
     return value
+
+  def find_root_path(self, module_name = ''):
+    if module_name.startswith('./') or module_name.startswith('../'):
+      return False
+
+    if self.base_path and os.path.isdir(self.base_path + '/node_modules/' + module_name):
+      # If we already have the base path, use this
+      return True
+
+    # Otherwise try to determine base path
+    i = 0
+    check_dir = os.path.dirname(self.view.file_name())
+    node_dir = check_dir + '/node_modules'
+    module_dir = node_dir + '/' + module_name
+    is_dir = os.path.isdir(module_dir)
+    while (i < 100 and (is_dir is False)):
+      check_dir = check_dir + '/..'
+      node_dir = check_dir + '/node_modules'
+      module_dir = node_dir + '/' + module_name
+      is_dir = os.path.isdir(module_dir)
+      i = i + 1
+
+    if is_dir:
+      self.base_path = check_dir;
+      return True
+    return False
+

@@ -13,5 +13,8 @@
   "node_path": "/usr/local/bin/node",
 
   // File extensions that should be considered
-  "extensions": [ "js", "jsx" ]
+  "extensions": [ "js", "jsx" ],
+
+  // Show gzip size as well
+  "show_gzip": false
 }
