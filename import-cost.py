@@ -9,17 +9,16 @@ PLUGIN_PATH = os.path.dirname(os.path.realpath(__file__))
 SETTINGS_FILE = '{0}.sublime-settings'.format(PLUGIN_NAME)
 
 PLUGIN_NODE_PATH = os.path.join(
-  sublime.packages_path(), 
   os.path.dirname(os.path.realpath(__file__)),
   'import-cost.js'
 )
 
-cache = {};
+cache = {}
 
 class ImportCostCommand(sublime_plugin.ViewEventListener):
   def __init__(self, view):
-    self.view = view;
-    self.base_path = None;
+    self.view = view
+    self.base_path = None
     self.phantoms = sublime.PhantomSet(view)
     self.update_phantoms()
 
@@ -48,7 +47,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     lines, modules = imports
 
     cnt = 0
-    final_data = [];
+    final_data = []
     final_modules = []
     for module in modules:
       if module and self.find_root_path(module):
@@ -57,7 +56,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
       cnt = cnt + 1
 
     if len(final_modules) is 0:
-      return;
+      return None
 
     args = []
     try:
@@ -69,12 +68,12 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     data = self.node_bridge(PLUGIN_NODE_PATH, [
       self.base_path, 
       args
-    ]);
+    ])
     json_data = json.loads(data)
 
     cnt = 0
     for module in final_data:
-      size_data = json_data[cnt];
+      size_data = json_data[cnt]
       if size_data['size']:
         line = self.view.line(module["region"].a)
 
@@ -165,7 +164,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
       i = i + 1
 
     if is_dir:
-      self.base_path = check_dir;
+      self.base_path = check_dir
       return True
     return False
 
