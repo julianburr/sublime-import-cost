@@ -4,12 +4,14 @@ import os
 import subprocess
 import json
 
+Path = os.path
+
 PLUGIN_NAME = __package__
-PLUGIN_PATH = os.path.dirname(os.path.realpath(__file__))
+PLUGIN_PATH = Path.dirname(Path.realpath(__file__))
 SETTINGS_FILE = '{0}.sublime-settings'.format(PLUGIN_NAME)
 
-PLUGIN_NODE_PATH = os.path.join(
-  os.path.dirname(os.path.realpath(__file__)),
+PLUGIN_NODE_PATH = Path.join(
+  Path.dirname(Path.realpath(__file__)),
   'import-cost.js'
 )
 
@@ -40,7 +42,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     es6 = self.view.find_all("import (.+) from ['\"](.+)['\"]", 0, "$2", modules)
     es5 = self.view.find_all("require\\((.+)\\)", 0, "$2", modules)
     return [es6 + es5, modules]
-    
+
   def calc_imports(self, imports):
     # TODO: cache modules!
     phantoms = []
@@ -65,10 +67,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
       print('Error trying to stringify json!')
       return None
 
-    data = self.node_bridge(PLUGIN_NODE_PATH, [
-      self.base_path, 
-      args
-    ])
+    data = self.node_bridge([self.base_path, args])
     json_data = json.loads(data)
 
     cnt = 0
@@ -106,24 +105,26 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     filename = self.view.file_name()
     if not filename:
       return False
-    file_ext = os.path.splitext(filename)[1][1:]
+    file_ext = Path.splitext(filename)[1][1:]
     if file_ext in self.get_setting('extensions', ['js', 'jsx']):
       return True
     return False
 
-  def node_bridge(self, bin, args=[]):
+  def node_bridge(self, args=[]):
     node_path = self.get_setting('node_path', '/usr/local/bin/node')
-    if (os.path.isfile(node_path) == False):
+
+    if (Path.isfile(node_path) == False):
       print('Error: Couldn\'t find "node" in "%s"' % node_path)
       return None
     try:
       process = subprocess.Popen(
-        [node_path] + [bin] + args,
+        [node_path, PLUGIN_NODE_PATH] + args,
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=os.environ.copy(),
-        startupinfo=None
+        startupinfo=None,
+        shell=True
       )
     except OSError:
       print('Error: Couldn\'t find "node" in "%s"' % node_path)
@@ -146,21 +147,22 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     if module_name.startswith('./') or module_name.startswith('../'):
       return False
 
-    if self.base_path and os.path.isdir(self.base_path + '/node_modules/' + module_name):
+    if self.base_path and \
+        Path.isdir(Path.join(self.base_path, 'node_modules', module_name)):
       # If we already have the base path, use this
       return True
 
     # Otherwise try to determine base path
     i = 0
-    check_dir = os.path.dirname(self.view.file_name())
-    node_dir = check_dir + '/node_modules'
-    module_dir = node_dir + '/' + module_name
-    is_dir = os.path.isdir(module_dir)
+    check_dir = Path.dirname(self.view.file_name())
+    node_dir = Path.join(check_dir, 'node_modules')
+    module_dir = Path.join(node_dir, module_name)
+    is_dir = Path.isdir(module_dir)
     while (i < 100 and (is_dir is False)):
-      check_dir = check_dir + '/..'
-      node_dir = check_dir + '/node_modules'
-      module_dir = node_dir + '/' + module_name
-      is_dir = os.path.isdir(module_dir)
+      check_dir = Path.join(check_dir, '..')
+      node_dir = Path.join(check_dir, 'node_modules')
+      module_dir = Path.join(node_dir, module_name)
+      is_dir = Path.isdir(module_dir)
       i = i + 1
 
     if is_dir:
