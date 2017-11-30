@@ -39,8 +39,13 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
 
   def find_imports(self):
     modules = []
-    es6 = self.view.find_all("import (.+) from ['\"](.+)['\"]", 0, "$2", modules)
-    es5 = self.view.find_all("require\\((.+)\\)", 0, "$2", modules)
+    es6 = self.view.find_all(
+      r'''import\s+(?:.+?)\s+from\s+['"](.+?)['"]''', 0, r"$1", modules
+    )
+    es5 = self.view.find_all(
+      r'''require\(\s*['"](.+?)['"]\s*\)''', 0, r"$1", modules
+    )
+    print(modules)
     return [es6 + es5, modules]
 
   def calc_imports(self, imports):
