@@ -16,7 +16,7 @@ npm i -g import-cost
 
 To change config options, open the menu `Sublime Text > Preferences > Package Settings > Import Cost` after installing the plugin. The following options are available:
 
-```json
+```js
 {
   // Check import costs of npm modules when saving a file
   "check_on_save": true,
