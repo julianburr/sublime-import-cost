@@ -1,6 +1,6 @@
 const { importCost, cleanup, JAVASCRIPT } = require('import-cost');
 
-const baseDir = process.argv[2]; // /Users/julianburr/Documents/dev/scotch-box/public/projects/vivid
+const baseDir = process.argv[2];
 const modules = JSON.parse(process.argv[3]);
 
 const fileContents = modules

@@ -3,6 +3,7 @@ import sublime_plugin
 import os
 import subprocess
 import json
+import sys
 
 Path = os.path
 
@@ -129,7 +130,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
         stderr=subprocess.PIPE,
         env=os.environ.copy(),
         startupinfo=None,
-        shell=True
+        shell=self.is_windows()
       )
     except OSError:
       print('Error: Couldn\'t find "node" in "%s"' % node_path)
@@ -140,6 +141,9 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
       print('Error: %s' % stderr)
       return None
     return stdout
+
+  def is_windows(self):
+    return sys.platform == "win32" or sys.platform == 'cygwin'
 
   def get_setting(self, key, default_value=None):
     settings = self.view.settings().get(PLUGIN_NAME)
@@ -163,7 +167,7 @@ class ImportCostCommand(sublime_plugin.ViewEventListener):
     node_dir = Path.join(check_dir, 'node_modules')
     module_dir = Path.join(node_dir, module_name)
     is_dir = Path.isdir(module_dir)
-    while (i < 100 and (is_dir is False)):
+    while (i < 20 and (is_dir is False)):
       check_dir = Path.join(check_dir, '..')
       node_dir = Path.join(check_dir, 'node_modules')
       module_dir = Path.join(node_dir, module_name)
